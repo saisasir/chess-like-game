@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Chess-like Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #111; color: #fff; text-align: center; }
+        .board { display: grid; grid-template-columns: repeat(5, 50px); grid-gap: 2px; margin: 20px auto; }
+        .cell { width: 50px; height: 50px; background-color: #444; display: flex; justify-content: center; align-items: center; }
+        .cell.player-A { color: red; }
+        .cell.player-B { color: blue; }
+        #controls { margin-top: 20px; }
+        button { margin: 5px; padding: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Advanced Chess-like Game</h1>
+    <div id="currentPlayer"></div>
+    <div class="board" id="board"></div>
+    <div id="controls"></div>
+    <div id="moveHistory"></div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:3000');
+        let gameState = null;
+        let currentPlayer = null;
+
+        ws.onmessage = (event) => {
+            console.log("Message received: ", event.data);
+            const message = JSON.parse(event.data);
+
+            switch (message.type) {
+                case 'init':
+                    gameState = message.state;
+                    currentPlayer = message.currentPlayer;
+                    renderGame();
+                    break;
+                case 'update':
+                    gameState = message.state;
+                    currentPlayer = message.currentPlayer;
+                    renderGame();
+                    break;
+                case 'error':
+                    alert(message.message);
+                    break;
+            }
+        };
+
+        function renderGame() {
+            document.getElementById('currentPlayer').innerText = `Current Player: ${currentPlayer}`;
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+
+            gameState.board.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.classList.add('cell');
+                    if (cell) {
+                        cellElement.innerText = cell;
+                        cellElement.classList.add(cell[0] === 'A' ? 'player-A' : 'player-B');
+                    }
+                    boardElement.appendChild(cellElement);
+                });
+            });
+
+            renderControls();
+        }
+
+        function renderControls() {
+            const controlsElement = document.getElementById('controls');
+            controlsElement.innerHTML = ''; // Clear existing controls
+
+            // Example: Add buttons for possible moves (L, R, F, B)
+            const moves = ['L', 'R', 'F', 'B']; // Example moves
+            moves.forEach(move => {
+                const button = document.createElement('button');
+                button.innerText = move;
+                button.onclick = () => sendMove('A-P1', move); // Example: Sending move for A-P1, customize as needed
+                controlsElement.appendChild(button);
+            });
+        }
+
+        function sendMove(character, move) {
+            console.log(`Sending move: ${character} ${move}`);
+            ws.send(JSON.stringify({
+                player: currentPlayer,
+                character: character,
+                move: move,
+            }));
+        }
+    </script>
+</body>
+</html>
